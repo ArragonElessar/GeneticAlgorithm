@@ -1,4 +1,3 @@
-import math
 import random
 import time
 
@@ -9,25 +8,45 @@ from Graph_Creator import *
 '''Genetic Algorithm
 Made by Pranav Ruparel -> Sep 2022'''
 
+# These are the hyper-parameters used in the code
+
+# Number of Vertices and Edges in the graph
 V = 50
-E = [100]  # set of sizes to generate random edges in the graph
-ITERATIONS_PER_SIZE = 7 # 5
+E = [100]
+
+# number of iterations of the genetic algorithm to be performed
+ITERATIONS_PER_SIZE = 6
+
+# Number of members that are present in each generation
 GENERATION_SIZE = 80
+
+# Number of generations that the algorithm will run for
 GENERATIONS = 50
+
+# small probability that will decide whether a mutation will occur in an individual or not
 MUTATE_PROBABILITY = 0.1
-RHO = 5  # mixing number, the number of parents considered for making a child
 
-ELITIST_NUMBER = 15  # i.e take the top # fittest states into the next generation
-CULLING_NUMBER = 15  # discard the bottom # most unfit states from taking part in reproduction
+# mixing number, the number of parents considered for making a child
+RHO = 5
+
+# i.e take the top # fittest states into the next generation
+ELITIST_NUMBER = 15
+
+# discard the bottom # most unfit states from taking part in reproduction
+CULLING_NUMBER = 15
 
 
+# Coloring class is the template that defines how each member of our population is built.
 class Coloring:
+    # colors dict to convert numbers to colors
     colors = {0: "R", 1: "G", 2: "B"}
 
+    # initialize a new Coloring object given its state and find its fitness
     def __init__(self, state):
         self.state = state
         self.fitness = self.calculate_fitness()
 
+    # function to calculate the fitness of a coloring object
     def calculate_fitness(self):
 
         # variable to count number of fit vertices
@@ -51,8 +70,10 @@ class Coloring:
             if isFit:
                 fitness_cnt += 1
 
+        # return the answer
         return fitness_cnt
 
+    # string formatting to print the coloring object and its state
     def __str__(self):
         out = ""  # f"Fitness: {self.fitness} \n"
         for i in range(V):
@@ -140,13 +161,6 @@ def mutate_if_better(child, prob):
     return temp
 
 
-# Update 3: Trying to mimic Simulated Annealing, isn't giving good results
-# initially, the MUTATION_RATE is set to be very high, and then it gradually reduces
-def update_mutation_prob(generation, k=10):
-    # new_prob = e ^ (-generation/k)
-    return math.pow(math.e, (-generation / k))
-
-
 # check if cumulative sums are zero
 def cumulative_zero(weights):
     s = np.sum(np.array(weights))
@@ -179,6 +193,7 @@ def generate_random_graph(gc, edge_length):
         g[edge[1]][edge[0]] = 1
 
 
+# function to make a graph, given the testcase file name
 def generate_test_graph(gc, filename):
     edges = gc.ReadGraphfromCSVfile(filename)
 
@@ -193,18 +208,22 @@ def generate_test_graph(gc, filename):
 
 
 def main():
+    # create an object of the graph creator class
     gc = Graph_Creator(V)
 
     # generate_random_graph(gc, edge_length)
     edge_length = generate_test_graph(gc, "Testcases/100")
 
-    e_max_fitness = -1
-    e_fitness = []
-    e_best_child = None
+    # containers to find and store the best state
+    fitness_of_best_child = -1
+    max_fitness_of_generation = []
+    best_fit_child = None
 
+    # start time to find running time
     start = time.time()
 
-    for iteration in range(ITERATIONS_PER_SIZE):
+    # Run the Genetic Algorithm Several times
+    for _ in range(ITERATIONS_PER_SIZE):
 
         # make the first generation
         generation, fitness_matrix = generate_population()
@@ -213,12 +232,8 @@ def main():
         max_fitness, best_child = -1, 0
         fitness_array = []
 
-        # set the initial mutation probability
-        # update 1: set mutate probability according to number of edges
-        mutate_probability = 0.1 # edge_length * 0.005
-
         # start iterating through the generations
-        for i in range(1, GENERATIONS):
+        for _ in range(1, GENERATIONS):
 
             # containers to contain new generation
             new_generation, new_fitness_matrix = [], []
@@ -230,12 +245,10 @@ def main():
                 new_generation.append(generation[k])
                 new_fitness_matrix.append(generation[k].fitness)
 
-            # print(f'Number of Members from last generation (Elite): {len(new_generation)}')
-
             # if the current fitness matrix isn't all zeroes
             if not cumulative_zero(fitness_matrix):
                 # generate V - ELITIST_NUMBER number of children
-                for j in range(GENERATION_SIZE - ELITIST_NUMBER):
+                for _ in range(GENERATION_SIZE - ELITIST_NUMBER):
 
                     # blank array that will contain RHO number of parents
                     parents = []
@@ -251,7 +264,7 @@ def main():
 
                     # this is the result of sexual reproduction along with mutation in a small probability
                     # update 2: using the better mutation function.
-                    child = reproduce(parents, mutate_probability, use_better_mutation=True)
+                    child = reproduce(parents, MUTATE_PROBABILITY, use_better_mutation=True)
 
                     new_generation.append(child)
                     new_fitness_matrix.append(child.fitness)
@@ -272,34 +285,32 @@ def main():
                 new_generation.pop()
                 new_fitness_matrix.pop()
 
-            # print(f'Number of Members after culling: {len(new_generation)}')
-
             # update the generation and fitness for the next generation
             generation = new_generation
             fitness_matrix = new_fitness_matrix
-
-            # update the mutation probabilities
-            # mutate_probability = update_mutation_prob(i)
 
             # this array is used for plotting the graph
             fitness_array.append(max_fitness)
 
         # update the answers for a given edge size
-        if max_fitness > e_max_fitness:
-            e_max_fitness = max_fitness
-            e_best_child = best_child
-            e_fitness = fitness_array
+        if max_fitness > fitness_of_best_child:
+            fitness_of_best_child = max_fitness
+            best_fit_child = best_child
+            max_fitness_of_generation = fitness_array
 
+    # end time to now calculate the final running time
     end = time.time()
 
+    # print the final answer
     print("Roll no : 2020A7PS0973G")
     print("Number of Edges : " + str(edge_length))
     print("Best State : ")
-    print(e_best_child)
-    print("Fitness Value of Best State : " + str(e_best_child.fitness))
+    print(best_fit_child)
+    print("Fitness Value of Best State : " + str(best_fit_child.fitness))
     print("Time taken : " + str(round(end - start, 2)) + " seconds")
 
-    plt.plot(e_fitness, color='c', label=f'Edges: {edge_length}')
+    # plot how the max fitness changes as the generations pass by
+    plt.plot(max_fitness_of_generation, color='c', label=f'Edges: {edge_length}')
     plt.legend(loc='best')
     plt.title("Max Fitness vs Generations")
     plt.ylim([0, GENERATIONS])
